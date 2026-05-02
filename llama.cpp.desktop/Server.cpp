@@ -10,10 +10,17 @@
 #include <thread>
 #include <future>
 #include <boost/process.hpp>
+#include <iostream>
 
 static auto path_home = std::string(std::getenv("HOME"));
 static auto path_model = path_home + "/.llama.cpp/models.ini";
 static auto path_bin = path_home + "/.llama.cpp/bin/llama-server";
+
+std::string trim_space(std::string s) {
+    auto start = s.find_first_not_of(" ");
+    auto end = s.find_last_not_of(" ");
+    return s.substr(start, end - start + 1);
+}
 
 std::vector<std::string> models() {
     std::vector<std::string> m;
@@ -21,6 +28,9 @@ std::vector<std::string> models() {
     std::ifstream f(path_model);
     if (f.is_open()) {
         for (std::string line; std::getline(f, line, '\n'); ) {
+            if (line.size() <= 0) continue;
+            line = trim_space(line);
+            if (line == "[*]") continue;
             if (line.starts_with("[") && line.ends_with("]")) {
                 m.emplace_back(line.substr(1, line.size() - 2));
             }
@@ -30,6 +40,33 @@ std::vector<std::string> models() {
     }
     
     return m;
+}
+
+static std::string base_port() {
+    std::string port = "8080";
+    
+    std::ifstream f(path_model);
+    if (f.is_open()) {
+        for (std::string line; std::getline(f, line, '\n');) {
+            if (line.size() <= 0) continue;
+            line = trim_space(line);
+            if (line.starts_with("port")) {
+                auto n = line.find("=");
+                if (n != std::string::npos) {
+                    line = line.substr(n + 1);
+                    if (line.size() > 0) port = trim_space(line);
+                    break;
+                }
+            }
+        }
+        f.close();
+    }
+    
+    return port;
+}
+
+std::string base_uri() {
+    return "http://127.0.0.1:" + base_port();
 }
 
 static std::mutex log_queue_mutex;
@@ -70,7 +107,7 @@ void start() {
             boost::process::process proc {
                 ctx,
                 path_bin.c_str(),
-                { "--models-preset", path_model, "--models-max", "1" },
+                { "--models-preset", path_model, "--models-max", "1", "--port", base_port() },
                 boost::process::process_stdio({ nullptr, {}, rp })
             };
             

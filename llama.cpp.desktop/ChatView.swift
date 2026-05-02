@@ -9,6 +9,11 @@ import SwiftUI
 import WebKit
 
 struct ChatView: View {
+    let url = {
+        let base = base_uri()
+        return String(base)
+    }()
+    
     var body: some View {
         VStack {
             HStack {
@@ -17,7 +22,7 @@ struct ChatView: View {
                 Spacer()
             }
             Divider()
-            ChatMainView(url: URL(string: "http://127.0.0.1:8080"))
+            ChatMainView(url: URL(string: url))
         }
         .padding()
     }

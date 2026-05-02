@@ -12,6 +12,7 @@
 #include <string>
 
 std::vector<std::string> models();
+std::string base_uri();
 
 void start();
 void stop();
